@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="UTF-8"?>  
+<beans xmlns="http://www.springframework.org/schema/beans"
+       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd">
+         
+
+        <bean id="validateTicketJob"
+                class="org.springframework.scheduling.quartz.JobDetailBean">
+                <property name="jobClass">
+                        <value>
+                                com.greenowl.callisto.timer.job.ValidateParkingTicketStatusJob
+                        </value>
+                </property>
+        </bean>
+        <bean id="validateTicketTrigger"
+                class="org.springframework.scheduling.quartz.CronTriggerBean">
+                <property name="jobDetail">
+                        <ref bean="validateTicketJob" />
+                </property>
+                <property name="cronExpression">
+                       <value>*/2 * * * * ?</value>
+                </property>
+
+         </bean>
+   <bean id="scheduler"
+		class="org.springframework.scheduling.quartz.SchedulerFactoryBean">
+		<property name="triggers">
+			<list>
+		               <ref bean="validateTicketTrigger"/>
+			</list>
+		</property>
+    </bean>
+           
+   
+</beans> 

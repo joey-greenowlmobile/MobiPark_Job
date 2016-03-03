@@ -10,11 +10,18 @@ import java.util.TimerTask;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.apache.http.HttpEntity;
+import org.apache.http.HttpResponse;
+import org.apache.http.client.methods.HttpGet;
+import org.apache.http.impl.client.CloseableHttpClient;
+import org.apache.http.impl.client.HttpClientBuilder;
+import org.apache.http.util.EntityUtils;
 import org.quartz.JobExecutionContext;
 import org.quartz.JobExecutionException;
 import org.springframework.scheduling.quartz.QuartzJobBean;
 
 import com.greenowl.callisto.timer.Constants;
+import com.greenowl.callisto.timer.service.ConfigService;
 import com.greenowl.callisto.timer.service.ConnectionFactory;
 import com.greenowl.callisto.timer.service.TicketCheckTask;
 
@@ -45,20 +52,55 @@ private Log logger = LogFactory.getLog(this.getClass());
 	    		pstmt.executeUpdate();
 	    		pstmt.close();
 	    		String gateSimulateMode = "false";
-	    		pstmt = con.prepareStatement("select value from T_APPLICATION_CONFIG where key_name='gate_simulate_mode'");
+	    		String autoCloseTimeStr = "120";
+	    		pstmt = con.prepareStatement("select key_name,value from T_APPLICATION_CONFIG where key_name='GATE_SIMULATION_MODE' or key_name='GATE_AUTO_CLOSE_TIME'");
 	    		rs = pstmt.executeQuery();
-	    		if(rs.next()){
-	    			gateSimulateMode = rs.getString(1);
+	    		while(rs.next()){
+	    			if("GATE_SIMULATION_MODE".equals(rs.getString("key_name"))){
+	    				gateSimulateMode = rs.getString("value");
+	    			}
+	    			if("GATE_AUTO_CLOSE_TIME".equals(rs.getString("key_name"))){
+	    				autoCloseTimeStr = rs.getString("value");
+	    			}
 	    		}
 	    		rs.close();
 	    		pstmt.close();
-	    		Timer timer = new Timer();	    		
-	    		TimerTask task1 = new TicketCheckTask(ticketId,ticketType,gateSimulateMode);	     
-	    		TimerTask task2 = new TicketCheckTask(ticketId,ticketType,gateSimulateMode);
-	    		TimerTask task3 = new TicketCheckTask(ticketId,ticketType,gateSimulateMode);
-          		timer.schedule(task1, 10*1000);
-          		timer.schedule(task2, 25*1000);
-          		timer.schedule(task3, 35*1000);
+	    		int autoCloseTime = 120;
+	    		try{
+	    			autoCloseTime = Integer.parseInt(autoCloseTimeStr);
+	    		}
+	    		catch(Exception e){
+	    			logger.error(e.getMessage(), e);
+	    		}
+	    		String token = "";
+	    		try{
+	    			HttpClientBuilder httpClientBuilder = HttpClientBuilder.create();  	        
+			        CloseableHttpClient closeableHttpClient = httpClientBuilder.build();
+			        StringBuilder url = new StringBuilder();
+			        String uri = ConfigService.getInstance().getConfig(Constants.APP_URI);
+			        if(uri==null){
+			        	uri = "http://52.71.192.103:8080/callisto_dev/";
+			        }
+	    			url.append(uri).append("api/v1/authenticate?username=admin@greenowlmobile.com&password=adminGreenowl123");
+	    			HttpGet httpGet = new HttpGet(url.toString());							
+			        HttpResponse httpResponse = closeableHttpClient.execute(httpGet); 
+			        HttpEntity entity = httpResponse.getEntity();  
+			        String content = EntityUtils.toString(entity,"utf-8").trim();			        
+	    			if(content.contains("\"token\":")){
+	    				String[] items = content.split("\"");
+	    				token = items[3];
+	    			}	    			
+	    		}
+	    		catch(Exception e){
+	    			logger.error(e.getMessage(), e);
+	    		}
+	    		logger.info("token:"+token);
+	    		int timeInterval = 20;
+	    		Timer timer = new Timer();
+	    		for(int k=0;k<Math.ceil(autoCloseTime/(timeInterval*1.0f));k++){
+	    			TimerTask task = new TicketCheckTask(ticketId,ticketType,gateSimulateMode,k+1,(int)Math.ceil(autoCloseTime/(timeInterval*1.0f)),token);
+	    			timer.schedule(task, (k+1)*timeInterval);
+	    		}	    		
 	    	  }	    	  
 	      }
 		  catch(Exception e){

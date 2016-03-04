@@ -95,7 +95,7 @@ private Log logger = LogFactory.getLog(this.getClass());
 	    			logger.error(e.getMessage(), e);
 	    		}
 	    		logger.info("token:"+token);
-	    		int timeInterval = 20;
+	    		int timeInterval = 20*1000;
 	    		Timer timer = new Timer();
 	    		for(int k=0;k<Math.ceil(autoCloseTime/(timeInterval*1.0f));k++){
 	    			TimerTask task = new TicketCheckTask(ticketId,ticketType,gateSimulateMode,k+1,(int)Math.ceil(autoCloseTime/(timeInterval*1.0f)),token);

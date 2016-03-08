@@ -130,7 +130,7 @@ public class TicketCheckTask extends TimerTask{
 						url.append(uri);
 						url.append("api/admin/task/updateParkingActivity/").append(ticketId);
 						url.append("?");
-	      				if(ticketStatus!=null && ticketStatus.contains("SAFTETY-STATUS: PASSED")){ 	      					
+	      				if(ticketStatus!=null && (ticketStatus.contains("SAFTETY-STATUS: PASSED") || ticketStatus.contains("SAFTETY-STATUS: REPORTED"))){ 	      					
 	      					if(ticketType==Constants.PARKING_TICKET_TYPE_ENTER){
 	      						url.append("parkingStatus=").append(Constants.PARKING_STATUS_IN_FLIGHT);
 	      						url.append("&entryDateTime=").append(Calendar.getInstance().getTimeInMillis());
